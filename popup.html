@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chzzk Syncer</title>
+    <style>
+      body {
+        width: 270px;
+        margin: 0;
+        padding: 14px;
+        font-family: Arial, sans-serif;
+        background: #111;
+        color: #fff;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 21px;
+        line-height: 1.2;
+      }
+
+      .subtitle {
+        margin-top: 4px;
+        margin-bottom: 14px;
+        font-size: 12px;
+        color: #fff;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 13px;
+        color: #ccc;
+      }
+
+      .number-row {
+        display: flex;
+        gap: 8px;
+        align-items: stretch;
+      }
+
+      #delaySeconds {
+        flex: 1;
+        min-width: 0;
+        height: 42px;
+        box-sizing: border-box;
+        padding: 8px 10px;
+        border: 1px solid #444;
+        border-radius: 8px;
+        background: #222;
+        color: #fff;
+        font-size: 22px;
+        font-weight: 700;
+      }
+
+      #delaySeconds::-webkit-outer-spin-button,
+      #delaySeconds::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      #delaySeconds[type="number"] {
+        appearance: textfield;
+        -moz-appearance: textfield;
+      }
+
+      .step-button {
+        width: 42px;
+        height: 42px;
+        padding: 0;
+        border: 0;
+        border-radius: 8px;
+        background: #333;
+        color: #fff;
+        font-size: 16px;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .step-button:hover {
+        background: #444;
+      }
+
+      .row {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .main-button {
+        flex: 1;
+        padding: 9px;
+        border: 0;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      #applyButton {
+        background: #00ffa3;
+        color: #000;
+      }
+
+      #resetButton {
+        background: #333;
+        color: #fff;
+      }
+
+      .delay-status {
+        margin-top: 12px;
+        padding: 9px 10px;
+        border-radius: 8px;
+        background: #222;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+        margin-bottom: 0;
+        font-size: 13px;
+        color: #fff;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .checkbox-row + .checkbox-row {
+        margin-top: 8px;
+      }
+
+      .checkbox-row input {
+        width: 15px;
+        height: 15px;
+        margin: 0;
+        accent-color: #00ffa3;
+        cursor: pointer;
+      }
+
+      .hint {
+        margin-top: 12px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: #888;
+        word-break: keep-all;
+        overflow-wrap: break-word;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Chzzk Syncer</h1>
+    <div class="subtitle">치지직 싱크 컨트롤러</div>
+
+    <label for="delaySeconds">최신 지점보다 몇 초 뒤로 볼까요?</label>
+
+    <div class="number-row">
+      <input id="delaySeconds" type="number" min="0" step="0.1" value="1.0" />
+      <button id="increaseButton" class="step-button" type="button">▲</button>
+      <button id="decreaseButton" class="step-button" type="button">▼</button>
+    </div>
+
+    <div class="row">
+      <button id="applyButton" class="main-button" type="button">적용</button>
+      <button id="resetButton" class="main-button" type="button">초기화</button>
+    </div>
+
+    <div id="videoDelayStatus" class="delay-status">
+      현재 지연시간: -
+    </div>
+
+    <label class="checkbox-row" for="hideFastForwardButton">
+      <input id="hideFastForwardButton" type="checkbox" />
+      <span>빨리감기 버튼 숨기기</span>
+    </label>
+
+    <label class="checkbox-row" for="showVideoDelayInChat">
+      <input id="showVideoDelayInChat" type="checkbox" />
+      <span>비디오 지연시간 표시하기</span>
+    </label>
+
+    <div class="hint">
+      ← / → : 1초 이동<br />
+      Shift + ← / → : 0.1초 이동<br />
+      빨리감기 버튼: 최신 지점으로 이동<br />
+      * 치트키 내 타임머신 기능과 충돌이 있을 수 있습니다.<br />
+      * 현재 지연시간은 방송 서버 기준이 아닌 브라우저 내 최신 버퍼 지점으로부터의 기준입니다.
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
