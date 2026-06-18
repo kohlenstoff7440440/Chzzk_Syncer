@@ -1,6 +1,7 @@
 (() => {
-  const SMALL_STEP_SECONDS = 0.1;
-  const NORMAL_STEP_SECONDS = 1.0;
+  const SHIFT_STEP_SECONDS = 0.1;
+  const CTRL_STEP_SECONDS = 1.0;
+  const NORMAL_STEP_SECONDS = 5.0;
   const LIVE_EDGE_MARGIN = 0.15;
 
   const STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON = "hideFastForwardButton";
@@ -10,6 +11,28 @@
   const EVENT_REQUEST_SETTINGS = "CHZZK_SYNCER_REQUEST_SETTINGS";
 
   const DEFAULT_CHAT_PLACEHOLDER = "채팅을 입력해주세요 (J)";
+
+  function isLivePage() {
+    return location.hostname === "chzzk.naver.com" && location.pathname.startsWith("/live/");
+  }
+
+  function makeNotLivePageResult() {
+    return {
+      ok: false,
+      error: "not_live_page"
+    };
+  }
+
+  function makeNotLiveDelayInfo() {
+    return {
+      ok: false,
+      error: "not_live_page",
+      delay: null,
+      currentTime: null,
+      liveEdge: null,
+      updatedAt: Date.now()
+    };
+  }
 
   let showVideoDelayInChat = false;
   let originalChatPlaceholder = null;
@@ -52,6 +75,10 @@
   }
 
   function calculateVideoDelayInfo() {
+    if (!isLivePage()) {
+      return makeNotLiveDelayInfo();
+    }
+  
     const video = getVideo();
 
     if (!video) {
@@ -139,6 +166,10 @@
   }
 
   function seekBy(seconds) {
+    if (!isLivePage()) {
+      return makeNotLivePageResult();
+    }
+
     const video = getVideo();
 
     if (!video) {
@@ -178,6 +209,10 @@
   }
 
   function goLive() {
+    if (!isLivePage()) {
+      return makeNotLivePageResult();
+    }
+
     const video = getVideo();
 
     if (!video) {
@@ -208,6 +243,9 @@
   }
 
   function setDelayFromLive(seconds) {
+    if (!isLivePage()) {
+      return makeNotLivePageResult();
+    }
     const video = getVideo();
 
     if (!video) {
@@ -305,6 +343,11 @@
   }
 
   function updateChatDelayPlaceholder() {
+    if (!isLivePage()) {
+      restoreChatPlaceholder();
+      return;
+    }
+
     const textarea = findChatTextarea();
 
     if (!textarea) {
@@ -388,42 +431,61 @@
     }
   }, 1000);
 
-  document.addEventListener(
-    "keydown",
-    (event) => {
-      if (isTypingTarget(document.activeElement)) {
-        return;
-      }
+document.addEventListener(
+  "keydown",
+  (event) => {
+    if (isTypingTarget(document.activeElement)) {
+      return;
+    }
 
-      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
-        return;
-      }
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+      return;
+    }
 
-      event.preventDefault();
-      event.stopPropagation();
+    if (!isLivePage()) {
+      return;
+    }
 
-      if (event.shiftKey) {
-        if (event.key === "ArrowLeft") {
-          seekBy(-SMALL_STEP_SECONDS);
-        }
+    event.preventDefault();
+    event.stopPropagation();
 
-        if (event.key === "ArrowRight") {
-          seekBy(SMALL_STEP_SECONDS);
-        }
-
-        return;
-      }
-
+    // Shift + 방향키: 0.1초 단위
+    if (event.shiftKey) {
       if (event.key === "ArrowLeft") {
-        seekBy(-NORMAL_STEP_SECONDS);
+        seekBy(-SHIFT_STEP_SECONDS);
       }
 
       if (event.key === "ArrowRight") {
-        seekBy(NORMAL_STEP_SECONDS);
+        seekBy(SHIFT_STEP_SECONDS);
       }
-    },
-    true
-  );
+
+      return;
+    }
+
+    // Ctrl + 방향키: 1초 단위
+    if (event.ctrlKey) {
+      if (event.key === "ArrowLeft") {
+        seekBy(-CTRL_STEP_SECONDS);
+      }
+
+      if (event.key === "ArrowRight") {
+        seekBy(CTRL_STEP_SECONDS);
+      }
+
+      return;
+    }
+
+    // 그냥 방향키: 5초 단위
+    if (event.key === "ArrowLeft") {
+      seekBy(-NORMAL_STEP_SECONDS);
+    }
+
+    if (event.key === "ArrowRight") {
+      seekBy(NORMAL_STEP_SECONDS);
+    }
+  },
+  true
+);
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!message || message.source !== "CHZZK_SYNCER") {
@@ -443,7 +505,7 @@
     }
 
     if (message.action === "REWIND_STEP") {
-      const result = seekBy(-SMALL_STEP_SECONDS);
+      const result = seekBy(-SHIFT_STEP_SECONDS);
       sendResponse(result);
       return;
     }
