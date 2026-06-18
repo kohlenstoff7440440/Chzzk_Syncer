@@ -144,9 +144,42 @@
         margin-top: 12px;
         font-size: 12px;
         line-height: 1.5;
-        color: #888;
+        color: #fff;
         word-break: keep-all;
         overflow-wrap: break-word;
+      }
+
+      .note {
+        margin-top: 12px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: #bdbdbd;
+        word-break: keep-all;
+        overflow-wrap: break-word;
+      }
+
+      .footnote {
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid #333;
+        font-size: 11px;
+        line-height: 1.5;
+        color: #888;
+      }
+
+      .footnote a {
+        color: #888;
+        text-decoration: none;
+        margin-right: 10px;
+      }
+
+      .footnote a:hover {
+        color: #ccc;
+        text-decoration: underline;
+      }
+
+      .footnote span {
+        color: #888;
       }
     </style>
   </head>
@@ -179,15 +212,26 @@
 
     <label class="checkbox-row" for="showVideoDelayInChat">
       <input id="showVideoDelayInChat" type="checkbox" />
-      <span>비디오 지연시간 표시하기</span>
+      <span>채팅창에 현재 지연시간 표시하기</span>
     </label>
 
     <div class="hint">
-      ← / → : 1초 이동<br />
+      ← / → : 5초 이동<br />
+      Ctrl + ← / → : 1초 이동<br />
       Shift + ← / → : 0.1초 이동<br />
-      빨리감기 버튼: 최신 지점으로 이동<br />
-      * 치트키 내 타임머신 기능과 충돌이 있을 수 있습니다.<br />
-      * 현재 지연시간은 방송 서버 기준이 아닌 브라우저 내 최신 버퍼 지점으로부터의 기준입니다.
+      빨리감기 버튼: 최신 지점으로 이동
+    </div>
+
+    <div class="note">
+      * 이동은 브라우저 내 저장된 버퍼 범위 안에서만 가능합니다.<br />
+      * 현재 지연시간은 방송 서버 기준이 아닌 브라우저 내 최신 버퍼 지점으로부터의 기준입니다.<br />
+      * 본인의 인터넷 상태에 따라 딜레이가 다시 발생할 수 있습니다.    
+    </div>
+
+    <div class="footnote">
+      <a href="https://github.com/kohlenstoff7440440/Chzzk-Syncer-6c" target="_blank" rel="noopener noreferrer">Github</a>
+      <span>문의: kohlenstoff7440440@gmail.com</span>
+      <span> v0.2.2</span>
     </div>
 
     <script src="popup.js"></script>
