@@ -7,6 +7,10 @@
 
   let hideFastForwardButton = false;
 
+  function isLivePage() {
+    return location.hostname === "chzzk.naver.com" && location.pathname.startsWith("/live/");
+  }
+
   function getVideo(root = document) {
     const videos = Array.from(root.querySelectorAll("video"));
 
@@ -52,6 +56,11 @@
   }
 
   function goLive(root = document) {
+    if (!isLivePage()) {
+      removeFastForwardButton();
+      return;
+    }
+
     const video = getVideo(root);
 
     if (!video) {
@@ -89,6 +98,12 @@
   }
 
   function installFastForwardButton(tries = 0) {
+
+    if (!isLivePage()) {
+      removeFastForwardButton();
+      return;
+    }
+
     if (hideFastForwardButton) {
       removeFastForwardButton();
       return;
@@ -147,6 +162,12 @@
   }
 
   function retryInstall(tries) {
+
+    if (!isLivePage()) {
+      removeFastForwardButton();
+      return;
+    }
+
     if (tries > 500 || hideFastForwardButton) {
       return;
     }
@@ -158,6 +179,11 @@
 
   window.addEventListener(EVENT_FAST_FORWARD_VISIBILITY, (event) => {
     hideFastForwardButton = Boolean(event.detail?.hidden);
+
+    if (!isLivePage()) {
+      removeFastForwardButton();
+      return;
+    }
 
     if (hideFastForwardButton) {
       removeFastForwardButton();
@@ -182,6 +208,11 @@
   installFastForwardButton();
 
   const observer = new MutationObserver(() => {
+    if(!isLivePage()) {
+      removeFastForwardButton();
+      return;
+    }
+
     installFastForwardButton();
   });
 
@@ -189,6 +220,15 @@
     childList: true,
     subtree: true
   });
+
+  setInterval(() => {
+    if (!isLivePage()) {
+      removeFastForwardButton();
+      return;
+    }
+
+    installFastForwardButton();
+  }, 1000);
 
   console.log("[Chzzk Syncer] player-button.js loaded");
 })();
