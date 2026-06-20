@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Chzzk Syncer - 치지직 싱크 컨트롤러",
-  "version": "0.2.2",
+  "version": "0.2.4",
   "description": "치지직 라이브 스트리밍 딜레이를 미세 조절하는 확장 프로그램입니다.",
   "permissions": ["storage"],
   "host_permissions": ["https://chzzk.naver.com/*"],
@@ -23,12 +23,12 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://chzzk.naver.com/live/*"],
+      "matches": ["https://chzzk.naver.com/*"],
       "js": ["content.js"],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://chzzk.naver.com/live/*"],
+      "matches": ["https://chzzk.naver.com/*"],
       "js": ["player-button.js"],
       "run_at": "document_idle",
       "world": "MAIN"
