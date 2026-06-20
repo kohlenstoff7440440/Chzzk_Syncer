@@ -140,6 +140,17 @@
         cursor: pointer;
       }
 
+      .checkbox-description {
+        margin-top: 4px;
+        margin-left: 23px;
+        margin-bottom: 10px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: #fff;
+        word-break: keep-all;
+        overflow-wrap: break-word;
+      }
+
       .hint {
         margin-top: 12px;
         font-size: 12px;
@@ -186,7 +197,7 @@
 
   <body>
     <h1>Chzzk Syncer</h1>
-    <div class="subtitle">치지직 싱크 컨트롤러</div>
+    <div class="subtitle">치지직 싱크 컨트롤러 v0.2.4</div>
 
     <label for="delaySeconds">최신 지점보다 몇 초 뒤로 볼까요?</label>
 
@@ -205,6 +216,17 @@
       현재 지연시간: -
     </div>
 
+    <div class="hint">
+      ← / → : 5초 이동<br />
+      Ctrl + ← / → : 1초 이동<br />
+      Shift + ← / → : 0.1초 이동<br />
+      빨리감기 버튼: 최신 지점으로 이동<br />
+      <br />
+      [사용법]<br />
+      1. 방송화면 하단 왼쪽의 빨리감기나 팝업창의 초기화 버튼을 누른 후 빠른 쪽 방송을 클릭해주세요.<br />
+      2. 방향키 혹은 팝업창의 숫자 변경 후 적용 버튼을 눌러 싱크를 맞춰주세요.<br />
+    </div>
+
     <label class="checkbox-row" for="hideFastForwardButton">
       <input id="hideFastForwardButton" type="checkbox" />
       <span>빨리감기 버튼 숨기기</span>
@@ -215,24 +237,25 @@
       <span>채팅창에 현재 지연시간 표시하기</span>
     </label>
 
-    <div class="hint">
-      ← / → : 5초 이동<br />
-      Ctrl + ← / → : 1초 이동<br />
-      Shift + ← / → : 0.1초 이동<br />
-      빨리감기 버튼: 최신 지점으로 이동
+    <label class="checkbox-row" for="preventDelayCorrection">
+      <input id="preventDelayCorrection" type="checkbox" />
+      <span>지연시간 보정 방지</span>
+    </label>
+    <div class="checkbox-description">
+      빨리감기 후 싱크를 맞춰도 어긋나는 상황이 반복될 때 체크 후 싱크를 다시 맞춰주세요.
+      사용자의 사양에 따라 버퍼링이 발생할 수 있습니다.<br />
     </div>
 
     <div class="note">
-      * 이동은 브라우저 내 저장된 버퍼 범위 안에서만 가능합니다.<br />
-      * 현재 지연시간은 방송 서버 기준이 아닌 브라우저 내 최신 버퍼 지점으로부터의 기준입니다.<br />
-      * 본인의 인터넷 상태에 따라 딜레이가 다시 발생할 수 있습니다.    
+      - 지연시간이 커지면 브라우저에서 자동으로 지연시간을 줄이는 보정을 실행하므로 싱크가 어긋날 수 있습니다.<br />
+      - 현재 지연시간에 *가 붙어 있다면 현재 자동 보정이 이루어지고 있는 상태입니다. 빨리감기 후 다시 싱크를 조절해주세요.<br /> 
     </div>
 
     <div class="footnote">
       <a href="https://github.com/kohlenstoff7440440/Chzzk-Syncer-6c" target="_blank" rel="noopener noreferrer">Github</a>
-      <span>문의: kohlenstoff7440440@gmail.com</span>
-      <span> v0.2.2</span>
-    </div>
+      <a href="https://chromewebstore.google.com/detail/gaccobpejmmdnnmkedglnbjkbpgcjjdf?utm_source=item-share-cb" target="_blank" rel="noopener noreferrer">크롬 웹스토어</a><br />
+      <span>오류 제보: kohlenstoff7440440@gmail.com</span>
+      </div>
 
     <script src="popup.js"></script>
   </body>
