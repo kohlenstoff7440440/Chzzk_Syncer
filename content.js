@@ -6,6 +6,7 @@
 
   const STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON = "hideFastForwardButton";
   const STORAGE_KEY_SHOW_VIDEO_DELAY_IN_CHAT = "showVideoDelayInChat";
+  const STORAGE_KEY_PREVENT_DELAY_CORRECTION = "preventDelayCorrection"
 
   const EVENT_FAST_FORWARD_VISIBILITY = "CHZZK_SYNCER_FAST_FORWARD_VISIBILITY";
   const EVENT_REQUEST_SETTINGS = "CHZZK_SYNCER_REQUEST_SETTINGS";
@@ -30,12 +31,17 @@
       delay: null,
       currentTime: null,
       liveEdge: null,
+      playbackRate: null,
+      isPlaybackRateAdjusted: false,
       updatedAt: Date.now()
     };
   }
 
   let showVideoDelayInChat = false;
   let originalChatPlaceholder = null;
+
+  let preventDelayCorrection = false;
+  let playbackRateLockVideo = null;
 
   // 팝업창과 채팅창이 같이 사용할 "공통 표시용 지연시간"
   let displayedDelayInfo = {
@@ -44,6 +50,8 @@
     delay: null,
     currentTime: null,
     liveEdge: null,
+    playbackRate: null,
+    isPlaybackRateAdjusted: false,
     updatedAt: 0
   };
 
@@ -58,6 +66,66 @@
       videos.find((video) => !Number.isNaN(video.duration) || video.readyState > 0) ||
       videos[0]
     );
+  }
+
+  function applyPlaybackRateLock() {
+    if (!preventDelayCorrection || !isLivePage()) {
+      return;
+    }
+
+    const video = getVideo();
+
+    if (!video) {
+      return;
+    }
+
+    if (video.defaultPlaybackRate !== 1) {
+      video.defaultPlaybackRate = 1;
+    }
+
+    if (Math.abs(video.playbackRate - 1) > 0.001) {
+      video.playbackRate = 1;
+    }
+  }
+
+  function handlePlaybackRateChange() {
+    applyPlaybackRateLock();
+  }
+  
+  function clearPlaybackRateLockTarget() {
+    if (!playbackRateLockVideo) {
+      return;
+    }
+
+    playbackRateLockVideo.removeEventListener("ratechange", handlePlaybackRateChange);
+    playbackRateLockVideo = null;
+  }
+
+  function updatePlaybackRateLock() {
+    if (!preventDelayCorrection || !isLivePage()) {
+      clearPlaybackRateLockTarget();
+      return;
+    }
+
+    const video = getVideo();
+
+    if (!video) {
+      clearPlaybackRateLockTarget();
+      return;
+    }
+
+    if (playbackRateLockVideo !== video) {
+      clearPlaybackRateLockTarget();
+      playbackRateLockVideo = video;
+      playbackRateLockVideo.addEventListener("ratechange", handlePlaybackRateChange);
+    }
+
+    applyPlaybackRateLock();
+  }
+
+  function setPreventDelayCorrection(prevent) {
+    preventDelayCorrection = Boolean(prevent);
+    updatePlaybackRateLock();
   }
 
   function getBufferedInfo(video) {
@@ -88,6 +156,8 @@
         delay: null,
         currentTime: null,
         liveEdge: null,
+        playbackRate: null,
+        isPlaybackRateAdjusted: false,
         updatedAt: Date.now()
       };
     }
@@ -95,23 +165,32 @@
     const buffered = getBufferedInfo(video);
 
     if (!buffered) {
+      const playbackRate = video.playbackRate;
+      const isPlaybackRateAdjusted = Math.abs(playbackRate - 1) > 0.001;
+
       return {
         ok: false,
         error: "buffer_not_found",
         delay: null,
         currentTime: video.currentTime,
         liveEdge: null,
+        playbackRate,
+        isPlaybackRateAdjusted,
         updatedAt: Date.now()
       };
     }
 
     const delay = Math.max(0, buffered.end - video.currentTime);
+    const playbackRate = video.playbackRate;
+    const isPlaybackRateAdjusted = Math.abs(playbackRate - 1) > 0.001;
 
     return {
       ok: true,
       delay,
       currentTime: video.currentTime,
       liveEdge: buffered.end,
+      playbackRate,
+      isPlaybackRateAdjusted,
       updatedAt: Date.now()
     };
   }
@@ -193,6 +272,7 @@
 
     // 이동 직후 공통 지연시간도 바로 갱신
     updateDisplayedDelayInfo();
+    updatePlaybackRateLock();
     updateChatDelayPlaceholder();
 
     if (seconds < 0) {
@@ -231,6 +311,7 @@
 
     // 이동 직후 공통 지연시간도 바로 갱신
     updateDisplayedDelayInfo();
+    updatePlaybackRateLock();
     updateChatDelayPlaceholder();
 
     showStatus("최신 지점으로 이동");
@@ -272,6 +353,7 @@
 
     // 이동 직후 공통 지연시간도 바로 갱신
     updateDisplayedDelayInfo();
+    updatePlaybackRateLock();
     updateChatDelayPlaceholder();
 
     showStatus(`최신보다 ${safeSeconds.toFixed(1)}초 뒤`);
@@ -367,8 +449,9 @@
       textarea.setAttribute("placeholder", "현재 지연: -");
       return;
     }
-
-    textarea.setAttribute("placeholder", `현재 지연: ${delayInfo.delay.toFixed(1)}초`);
+    
+    const playbackRateMark = delayInfo.isPlaybackRateAdjusted ? "*" : "";
+    textarea.setAttribute("placeholder", `현재 지연: ${delayInfo.delay.toFixed(1)}초${playbackRateMark}`);
   }
 
   function setShowVideoDelayInChat(show) {
@@ -397,7 +480,8 @@
     chrome.storage.sync.get(
       {
         [STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON]: false,
-        [STORAGE_KEY_SHOW_VIDEO_DELAY_IN_CHAT]: false
+        [STORAGE_KEY_SHOW_VIDEO_DELAY_IN_CHAT]: false,
+        [STORAGE_KEY_PREVENT_DELAY_CORRECTION]: false
       },
       (result) => {
         sendFastForwardButtonVisibility(
@@ -406,6 +490,10 @@
 
         setShowVideoDelayInChat(
           result[STORAGE_KEY_SHOW_VIDEO_DELAY_IN_CHAT]
+        );
+
+        setPreventDelayCorrection(
+          result[STORAGE_KEY_PREVENT_DELAY_CORRECTION]
         );
       }
     );
@@ -425,6 +513,7 @@
 
   setInterval(() => {
     updateDisplayedDelayInfo();
+    updatePlaybackRateLock();
 
     if (showVideoDelayInChat) {
       updateChatDelayPlaceholder();
@@ -528,6 +617,25 @@ document.addEventListener(
           sendResponse({
             ok: true,
             hidden
+          });
+        }
+      );
+
+      return true;
+    }
+
+    if (message.action === "SET_PREVENT_DELAY_CORRECTION") {
+      const prevent = Boolean(message.prevent);
+
+      chrome.storage.sync.set(
+        {
+          [STORAGE_KEY_PREVENT_DELAY_CORRECTION]: prevent
+        },
+        () => {
+          setPreventDelayCorrection(prevent);
+          sendResponse({
+            ok: true,
+            prevent
           });
         }
       );
