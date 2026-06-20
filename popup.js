@@ -5,12 +5,14 @@ const increaseButton = document.getElementById("increaseButton");
 const decreaseButton = document.getElementById("decreaseButton");
 const hideFastForwardButtonCheckbox = document.getElementById("hideFastForwardButton");
 const showVideoDelayInChatCheckbox = document.getElementById("showVideoDelayInChat");
+const preventDelayCorrectionCheckbox = document.getElementById("preventDelayCorrection");
 const videoDelayStatus = document.getElementById("videoDelayStatus");
 
 const STEP = 0.1;
 
 const STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON = "hideFastForwardButton";
 const STORAGE_KEY_SHOW_VIDEO_DELAY_IN_CHAT = "showVideoDelayInChat";
+const STORAGE_KEY_PREVENT_DELAY_CORRECTION = "preventDelayCorrection";
 
 function roundToOneDecimal(value) {
   return Math.round(value * 10) / 10;
@@ -87,7 +89,8 @@ async function updateVideoDelayStatus() {
     });
 
     if (result?.ok) {
-      setVideoDelayStatusText(`현재 지연시간: ${result.delay.toFixed(1)}초`);
+      const playbackRateMark = result.isPlaybackRateAdjusted ? "*" : "";
+      setVideoDelayStatusText(`현재 지연시간: ${result.delay.toFixed(1)}초${playbackRateMark}`);
       return;
     }
 
@@ -101,7 +104,8 @@ function loadPopupSettings() {
   chrome.storage.sync.get(
     {
       [STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON]: false,
-      [STORAGE_KEY_SHOW_VIDEO_DELAY_IN_CHAT]: false
+      [STORAGE_KEY_SHOW_VIDEO_DELAY_IN_CHAT]: false,
+      [STORAGE_KEY_PREVENT_DELAY_CORRECTION]: false
     },
     (result) => {
       hideFastForwardButtonCheckbox.checked =
@@ -109,6 +113,9 @@ function loadPopupSettings() {
 
       showVideoDelayInChatCheckbox.checked =
         Boolean(result[STORAGE_KEY_SHOW_VIDEO_DELAY_IN_CHAT]);
+
+      preventDelayCorrectionCheckbox.checked =
+        Boolean(result[STORAGE_KEY_PREVENT_DELAY_CORRECTION]);
     }
   );
 }
@@ -141,6 +148,20 @@ async function setShowVideoDelayInChat(show) {
   }
 }
 
+async function setPreventDelayCorrection(prevent) {
+  chrome.storage.sync.set({
+    [STORAGE_KEY_PREVENT_DELAY_CORRECTION]: prevent
+  });
+
+  try {
+    await sendToCurrentTab({
+      action: "SET_PREVENT_DELAY_CORRECTION",
+      prevent
+    });
+  } catch (error) {
+  }
+}
+
 increaseButton.addEventListener("click", () => {
   setDelaySeconds(getDelaySeconds() + STEP);
 });
@@ -163,6 +184,10 @@ hideFastForwardButtonCheckbox.addEventListener("change", () => {
 
 showVideoDelayInChatCheckbox.addEventListener("change", () => {
   setShowVideoDelayInChat(showVideoDelayInChatCheckbox.checked);
+});
+
+preventDelayCorrectionCheckbox.addEventListener("change", () => {
+  setPreventDelayCorrection(preventDelayCorrectionCheckbox.checked);
 });
 
 delayInput.addEventListener("keydown", (event) => {
