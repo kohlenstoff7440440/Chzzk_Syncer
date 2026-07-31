@@ -3,259 +3,847 @@
   <head>
     <meta charset="UTF-8" />
     <title>Chzzk Syncer</title>
+
     <style>
-      body {
-        width: 270px;
-        margin: 0;
-        padding: 14px;
-        font-family: Arial, sans-serif;
-        background: #111;
-        color: #fff;
+      :root {
+        color-scheme: dark;
+
+        --background: #2d2d2d;
+        --surface: #242424;
+        --surface-light: #353535;
+        --surface-hover: #414141;
+
+        --border: #5d5d5d;
+
+        --text: #f7f7f7;
+        --text-secondary: #c9c9c9;
+        --text-muted: #969696;
+
+        --green: #00e534;
+        --green-dark: #207229;
+        --switch-off: #555;
       }
 
-      h1 {
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 365px;
+        height: 590px;
         margin: 0;
-        font-size: 21px;
-        line-height: 1.2;
+        padding: 0;
+        overflow: hidden;
+      }
+
+      body {
+        display: flex;
+        flex-direction:column;
+
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 17px 15px 14px;
+
+        overflow: hidden;
+
+        background: var(--background);
+        color: var(--text);
+
+        font-family:
+          Arial,
+          "Noto Sans KR",
+          sans-serif;
+
+        font-weight: 400;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        color: inherit;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      /* 제목 */
+
+      .header {
+        margin-bottom: 14px;
+      }
+
+      .title {
+        margin: 0;
+
+        font-size: 30px;
+        font-weight: 400;
+        line-height: 1.05;
+        letter-spacing: -1.7px;
       }
 
       .subtitle {
-        margin-top: 4px;
-        margin-bottom: 14px;
-        font-size: 12px;
-        color: #fff;
-      }
+        margin-top: 5px;
 
-      label {
-        display: block;
-        margin-bottom: 6px;
         font-size: 13px;
-        color: #ccc;
-      }
-
-      .number-row {
-        display: flex;
-        gap: 8px;
-        align-items: stretch;
-      }
-
-      #delaySeconds {
-        flex: 1;
-        min-width: 0;
-        height: 42px;
-        box-sizing: border-box;
-        padding: 8px 10px;
-        border: 1px solid #444;
-        border-radius: 8px;
-        background: #222;
-        color: #fff;
-        font-size: 22px;
         font-weight: 700;
+        color: var(--text);
       }
 
-      #delaySeconds::-webkit-outer-spin-button,
-      #delaySeconds::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-      }
-
-      #delaySeconds[type="number"] {
-        appearance: textfield;
-        -moz-appearance: textfield;
-      }
-
-      .step-button {
-        width: 42px;
-        height: 42px;
-        padding: 0;
-        border: 0;
-        border-radius: 8px;
-        background: #333;
-        color: #fff;
-        font-size: 16px;
-        font-weight: 900;
-        cursor: pointer;
-      }
-
-      .step-button:hover {
-        background: #444;
-      }
-
-      .row {
-        display: flex;
-        gap: 8px;
-        margin-top: 12px;
-      }
-
-      .main-button {
-        flex: 1;
-        padding: 9px;
-        border: 0;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 700;
-      }
-
-      #applyButton {
-        background: #00ffa3;
-        color: #000;
-      }
-
-      #resetButton {
-        background: #333;
-        color: #fff;
-      }
+      /* 현재 지연시간 */
 
       .delay-status {
-        margin-top: 12px;
-        padding: 9px 10px;
-        border-radius: 8px;
-        background: #222;
-        color: #fff;
-        font-size: 13px;
+        display: flex;
+        align-items: baseline;
+
+        width: 100%;
+        min-height: 45px;
+        padding: 7px 11px;
+        margin-bottom: 8px;
+
+        border-radius: 10px;
+
+        background: var(--surface);
+        color: var(--text);
+
+        font-size: 18px;
         font-weight: 700;
+        letter-spacing: -0.7px;
       }
 
-      .checkbox-row {
+      #videoDelayValue {
+        margin-left: 5px;
+      }
+
+      /* 이동 버튼 */
+
+      .seek-grid {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 4px;
+
+        margin-bottom: 9px;
+      }
+
+      .seek-button {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+
+        min-width: 0;
+        height: 55px;
+        padding: 3px 1px;
+
+        border: 1px solid #f0f0f0;
+        border-radius: 11px;
+
+        background: transparent;
+        color: var(--text);
+
+        cursor: pointer;
+
+        transition:
+          background 120ms ease,
+          transform 90ms ease;
+      }
+
+      .seek-button:hover {
+        background: var(--surface-hover);
+      }
+
+      .seek-button:active {
+        transform: scale(0.95);
+      }
+
+      .seek-icon {
+        display: block;
+
+        height: 18px;
+
+        font-family: Arial, sans-serif;
+        font-size: 15px;
+        font-weight: 400;
+        line-height: 18px;
+        letter-spacing: -4px;
+
+        transform: translateX(-2px);
+      }
+
+      .seek-button[data-direction="forward"] .seek-icon {
+        transform: translateX(0);
+      }
+
+      .seek-label {
+        display: block;
+        margin-top: 3px;
+
+        font-size: 15px;
+        font-weight: 400;
+        line-height: 1;
+        white-space: nowrap;
+      }
+
+      /* 초기화 버튼 */
+
+      .reset-button {
+        width: 100%;
+        height: 35px;
+        padding: 0 12px;
+        margin: 0 0 13px;
+
+        border: 1px solid #f0f0f0;
+        border-radius: 10px;
+
+        background: transparent;
+        color: var(--text);
+
+        font-size: 16px;
+        font-weight: 700;
+
+        cursor: pointer;
+
+        transition:
+          background 120ms ease,
+          transform 90ms ease;
+      }
+
+      .reset-button:hover {
+        background: var(--surface-hover);
+      }
+
+      .reset-button:active {
+        transform: scale(0.98);
+      }
+
+      /* 탭 */
+
+      .tab-list {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+
+        margin-bottom: 12px;
+      }
+
+      .tab-button {
+        height: 44px;
+        padding: 0;
+
+        border: 1px solid #525252;
+        border-radius: 11px;
+
+        background: transparent;
+        color: var(--text);
+
+        font-size: 19px;
+        font-weight: 700;
+
+        cursor: pointer;
+
+        transition:
+          background 140ms ease,
+          color 140ms ease,
+          border-color 140ms ease;
+      }
+
+      .tab-button:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .tab-button.is-active {
+        border-color: var(--green-dark);
+
+        background: var(--green-dark);
+        color: var(--green);
+      }
+
+      /* 탭 아래 내용만 스크롤 */
+
+      .tab-content {
+        flex: 1 1 auto;
+        min-height: 0;
+        height: auto;
+
+        padding-right: 8px;
+
+        overflow-x: hidden;
+        overflow-y: auto;
+
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: #a8a8a8 transparent;
+      }
+
+      .tab-content::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .tab-content::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .tab-content::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: #a8a8a8;
+      }
+
+      .tab-content::-webkit-scrollbar-thumb:hover {
+        background: #c6c6c6;
+      }
+
+      .tab-panel {
+        width: 100%;
+      }
+
+      /* 기능 설정 */
+
+      .setting-group {
+        margin-bottom: 4px;
+      }
+
+      .setting-row {
         display: flex;
         align-items: center;
-        gap: 8px;
-        margin-top: 12px;
-        margin-bottom: 0;
-        font-size: 13px;
-        color: #fff;
+        justify-content: space-between;
+        gap: 14px;
+
+        min-height: 45px;
+
+        color: var(--text);
+
         cursor: pointer;
         user-select: none;
       }
 
-      .checkbox-row + .checkbox-row {
-        margin-top: 8px;
+      .setting-name {
+        flex: 1;
+
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.35;
+        letter-spacing: -0.4px;
+
+        word-break: keep-all;
       }
 
-      .checkbox-row input {
-        width: 15px;
-        height: 15px;
+      /* 스위치 */
+
+      .switch {
+        position: relative;
+
+        flex: 0 0 auto;
+        width: 47px;
+        height: 27px;
+      }
+
+      .switch-input {
+        position: absolute;
+
+        width: 1px;
+        height: 1px;
+
+        margin: -1px;
+        padding: 0;
+
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+
+        border: 0;
+        opacity: 0;
+      }
+
+      .switch-track {
+        position: absolute;
+        inset: 0;
+
+        border-radius: 999px;
+
+        background: var(--switch-off);
+
+        transition: background 170ms ease;
+      }
+
+      .switch-track::after {
+        content: "";
+
+        position: absolute;
+        top: 3px;
+        left: 3px;
+
+        width: 21px;
+        height: 21px;
+
+        border-radius: 50%;
+
+        background: #d8d8d8;
+
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+
+        transition:
+          transform 170ms cubic-bezier(0.22, 1, 0.36, 1),
+          background 170ms ease;
+      }
+
+      .switch-input:checked + .switch-track {
+        background: #008a18;
+      }
+
+      .switch-input:checked + .switch-track::after {
+        transform: translateX(20px);
+        background: #3e3e3e;
+      }
+
+      .switch-input:focus-visible + .switch-track {
+        outline: 2px solid var(--green);
+        outline-offset: 2px;
+      }
+
+      .setting-description {
+        margin: -3px 58px 5px 0;
+
+        color: var(--text-secondary);
+
+        font-size: 12px;
+        line-height: 1.35;
+        letter-spacing: -0.2px;
+
+        word-break: keep-all;
+        overflow-wrap: break-word;
+      }
+
+      /* 사용법 */
+
+      .guide-section {
+        margin-bottom: 13px;
+      }
+
+      .guide-title {
+        margin: 0 0 5px;
+
+        color: var(--text);
+
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+
+      .guide-text {
         margin: 0;
-        accent-color: #00ffa3;
-        cursor: pointer;
-      }
 
-      .checkbox-description {
-        margin-top: 4px;
-        margin-left: 23px;
-        margin-bottom: 10px;
-        font-size: 12px;
-        line-height: 1.5;
-        color: #fff;
+        color: var(--text-secondary);
+
+        font-size: 13px;
+        line-height: 1.4;
+
         word-break: keep-all;
         overflow-wrap: break-word;
       }
 
-      .hint {
-        margin-top: 12px;
-        font-size: 12px;
-        line-height: 1.5;
-        color: #fff;
-        word-break: keep-all;
-        overflow-wrap: break-word;
+      .guide-list {
+        margin: 0;
+        padding-left: 20px;
+
+        color: var(--text-secondary);
+
+        font-size: 13px;
+        line-height: 1.4;
       }
 
-      .note {
-        margin-top: 12px;
-        font-size: 12px;
-        line-height: 1.5;
-        color: #bdbdbd;
-        word-break: keep-all;
-        overflow-wrap: break-word;
+      .guide-list li + li {
+        margin-top: 3px;
       }
 
-      .footnote {
-        margin-top: 12px;
-        padding-top: 10px;
-        border-top: 1px solid #333;
-        font-size: 11px;
-        line-height: 1.5;
-        color: #888;
+      .shortcut-list {
+        display: grid;
+        gap: 4px;
+
+        margin: 0;
+        padding: 0;
+
+        list-style: none;
       }
 
-      .footnote a {
-        color: #888;
-        text-decoration: none;
-        margin-right: 10px;
+      .shortcut-list li {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+
+        color: var(--text-secondary);
+
+        font-size: 13px;
+        line-height: 1.4;
       }
 
-      .footnote a:hover {
-        color: #ccc;
-        text-decoration: underline;
+      .shortcut-list strong {
+        color: var(--text);
+        white-space: nowrap;
       }
 
-      .footnote span {
-        color: #888;
+      .guide-subtitle {
+        display: block;
+        margin: 6px 0 3px;
+
+        color: var(--text);
+        font-size: 13px;
       }
+
+      .header,
+      .delay-controls,
+      .tab-list {
+        flex: 0 0 auto;
+      }
+      
+      body,
+      button,
+      input,
+      .title,
+      .subtitle,
+      .delay-status,
+      .seek-label,
+      .reset-button,
+      .tab-button,
+      .setting-name,
+      .setting-description,
+      .guide-title,
+      .guide-text,
+      .guide-list,
+      .shortcut-list,
+      .shortcut-list strong,
+      .guide-subtitle,
+      .guide-text strong {
+        font-weight: 400;
+      }
+
+      @keyframes action-button-flash {
+        0% {
+          border-color: var(--green);
+          background: rgba(0, 229, 52, 0.55);
+          box-shadow:
+            0 0 0 0 rgba(0, 229, 52, 0.45);
+        }
+
+        45% {
+          border-color: var(--green);
+          background: rgba(0, 229, 52, 0.32);
+          box-shadow:
+            0 0 8px 2px rgba(0, 229, 52, 0.28);
+        }
+
+        100% {
+          border-color: #f0f0f0;
+          background: transparent;
+          box-shadow:
+            0 0 0 0 rgba(0, 229, 52, 0);
+        }
+      }
+
+      .seek-button.is-flashing,
+      .reset-button.is-flashing {
+        animation:
+          action-button-flash
+          280ms
+          ease-out;
+      }
+
     </style>
   </head>
 
   <body>
-    <h1>Chzzk Syncer</h1>
-    <div class="subtitle">치지직 싱크 컨트롤러 v0.2.4</div>
+    <header class="header">
+      <h1 class="title">Chzzk Syncer</h1>
+      <div class="subtitle">치지직 싱크 컨트롤러 v0.3.1<br>
+        치지직 라이브 스트리밍 딜레이를 미세 조절하여 두 방송의 싱크를 맞출 수 있도록 돕는 확장 프로그램입니다.</div>
+    </header>
 
-    <label for="delaySeconds">최신 지점보다 몇 초 뒤로 볼까요?</label>
-
-    <div class="number-row">
-      <input id="delaySeconds" type="number" min="0" step="0.1" value="1.0" />
-      <button id="increaseButton" class="step-button" type="button">▲</button>
-      <button id="decreaseButton" class="step-button" type="button">▼</button>
-    </div>
-
-    <div class="row">
-      <button id="applyButton" class="main-button" type="button">적용</button>
-      <button id="resetButton" class="main-button" type="button">초기화</button>
-    </div>
-
-    <div id="videoDelayStatus" class="delay-status">
-      현재 지연시간: -
-    </div>
-
-    <div class="hint">
-      ← / → : 5초 이동<br />
-      Ctrl + ← / → : 1초 이동<br />
-      Shift + ← / → : 0.1초 이동<br />
-      빨리감기 버튼: 최신 지점으로 이동<br />
-      <br />
-      [사용법]<br />
-      1. 방송화면 하단 왼쪽의 빨리감기나 팝업창의 초기화 버튼을 누른 후 빠른 쪽 방송을 클릭해주세요.<br />
-      2. 방향키 혹은 팝업창의 숫자 변경 후 적용 버튼을 눌러 싱크를 맞춰주세요.<br />
-    </div>
-
-    <label class="checkbox-row" for="hideFastForwardButton">
-      <input id="hideFastForwardButton" type="checkbox" />
-      <span>빨리감기 버튼 숨기기</span>
-    </label>
-
-    <label class="checkbox-row" for="showVideoDelayInChat">
-      <input id="showVideoDelayInChat" type="checkbox" />
-      <span>채팅창에 현재 지연시간 표시하기</span>
-    </label>
-
-    <label class="checkbox-row" for="preventDelayCorrection">
-      <input id="preventDelayCorrection" type="checkbox" />
-      <span>지연시간 보정 방지</span>
-    </label>
-    <div class="checkbox-description">
-      빨리감기 후 싱크를 맞춰도 어긋나는 상황이 반복될 때 체크 후 싱크를 다시 맞춰주세요.
-      사용자의 사양에 따라 버퍼링이 발생할 수 있습니다.<br />
-    </div>
-
-    <div class="note">
-      - 지연시간이 커지면 브라우저에서 자동으로 지연시간을 줄이는 보정을 실행하므로 싱크가 어긋날 수 있습니다.<br />
-      - 현재 지연시간에 *가 붙어 있다면 현재 자동 보정이 이루어지고 있는 상태입니다. 빨리감기 후 다시 싱크를 조절해주세요.<br /> 
-    </div>
-
-    <div class="footnote">
-      <a href="https://github.com/kohlenstoff7440440/Chzzk-Syncer-6c" target="_blank" rel="noopener noreferrer">Github</a>
-      <a href="https://chromewebstore.google.com/detail/gaccobpejmmdnnmkedglnbjkbpgcjjdf?utm_source=item-share-cb" target="_blank" rel="noopener noreferrer">크롬 웹스토어</a><br />
-      <span>오류 제보: kohlenstoff7440440@gmail.com</span>
+    <section class="delay-controls" aria-label="지연시간 조절">
+      <div class="delay-status" aria-live="polite">
+        현재 지연 시간:
+        <span id="videoDelayValue">-</span>
+        <span id="videoDelaySuffix">초</span>
       </div>
+
+      <div class="seek-grid">
+        <button
+          class="seek-button"
+          type="button"
+          data-seconds="-5"
+          data-direction="rewind"
+          aria-label="5초 뒤로 이동"
+        >
+          <span class="seek-icon" aria-hidden="true">◀◀</span>
+          <span class="seek-label">-5초</span>
+        </button>
+
+        <button
+          class="seek-button"
+          type="button"
+          data-seconds="-1"
+          data-direction="rewind"
+          aria-label="1초 뒤로 이동"
+        >
+          <span class="seek-icon" aria-hidden="true">◀◀</span>
+          <span class="seek-label">-1초</span>
+        </button>
+
+        <button
+          class="seek-button"
+          type="button"
+          data-seconds="-0.1"
+          data-direction="rewind"
+          aria-label="0.1초 뒤로 이동"
+        >
+          <span class="seek-icon" aria-hidden="true">◀◀</span>
+          <span class="seek-label">-0.1초</span>
+        </button>
+
+        <button
+          class="seek-button"
+          type="button"
+          data-seconds="0.1"
+          data-direction="forward"
+          aria-label="0.1초 앞으로 이동"
+        >
+          <span class="seek-icon" aria-hidden="true">▶▶</span>
+          <span class="seek-label">+0.1초</span>
+        </button>
+
+        <button
+          class="seek-button"
+          type="button"
+          data-seconds="1"
+          data-direction="forward"
+          aria-label="1초 앞으로 이동"
+        >
+          <span class="seek-icon" aria-hidden="true">▶▶</span>
+          <span class="seek-label">+1초</span>
+        </button>
+
+        <button
+          class="seek-button"
+          type="button"
+          data-seconds="5"
+          data-direction="forward"
+          aria-label="5초 앞으로 이동"
+        >
+          <span class="seek-icon" aria-hidden="true">▶▶</span>
+          <span class="seek-label">+5초</span>
+        </button>
+      </div>
+
+      <button id="resetButton" class="reset-button" type="button">
+        지연 시간 초기화
+      </button>
+    </section>
+
+    <div class="tab-list" role="tablist" aria-label="팝업 메뉴">
+      <button
+        id="featuresTab"
+        class="tab-button is-active"
+        type="button"
+        role="tab"
+        aria-selected="true"
+        aria-controls="featuresPanel"
+        data-tab="features"
+      >
+        기능
+      </button>
+
+      <button
+        id="guideTab"
+        class="tab-button"
+        type="button"
+        role="tab"
+        aria-selected="false"
+        aria-controls="guidePanel"
+        data-tab="guide"
+      >
+        사용법
+      </button>
+    </div>
+
+    <main class="tab-content">
+      <section
+        id="featuresPanel"
+        class="tab-panel"
+        role="tabpanel"
+        aria-labelledby="featuresTab"
+        data-panel="features"
+      >
+        <div class="setting-group">
+          <label class="setting-row" for="showVideoDelayInChat">
+            <span class="setting-name">
+              채팅 입력창에 현재 지연시간 표시하기
+            </span>
+
+            <span class="switch">
+              <input
+                id="showVideoDelayInChat"
+                class="switch-input"
+                type="checkbox"
+              />
+              <span class="switch-track" aria-hidden="true"></span>
+            </span>
+          </label>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-row" for="preventDelayCorrection">
+            <span class="setting-name">지연시간 보정 방지</span>
+
+            <span class="switch">
+              <input
+                id="preventDelayCorrection"
+                class="switch-input"
+                type="checkbox"
+              />
+              <span class="switch-track" aria-hidden="true"></span>
+            </span>
+          </label>
+
+          <p class="setting-description">
+            사용자의 사양에 따라 버퍼링이 발생할 수 있습니다.
+            사용법 탭의 설명을 읽고 사용해주세요.
+          </p>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-row" for="disableNormalArrowKeys">
+            <span class="setting-name">좌우 방향키 기능 사용 안함</span>
+
+            <span class="switch">
+              <input
+                id="disableNormalArrowKeys"
+                class="switch-input"
+                type="checkbox"
+              />
+              <span class="switch-track" aria-hidden="true"></span>
+            </span>
+          </label>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-row" for="hideDelayBar">
+            <span class="setting-name">딜레이 바 숨기기</span>
+
+            <span class="switch">
+              <input
+                id="hideDelayBar"
+                class="switch-input"
+                type="checkbox"
+              />
+              <span class="switch-track" aria-hidden="true"></span>
+            </span>
+          </label>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-row" for="hideFastForwardButton">
+            <span class="setting-name">빨리감기 버튼 숨기기</span>
+
+            <span class="switch">
+              <input
+                id="hideFastForwardButton"
+                class="switch-input"
+                type="checkbox"
+              />
+              <span class="switch-track" aria-hidden="true"></span>
+            </span>
+          </label>
+        </div>
+
+      </section>
+
+      <section
+        id="guidePanel"
+        class="tab-panel"
+        role="tabpanel"
+        aria-labelledby="guideTab"
+        data-panel="guide"
+        hidden
+      >
+        <div class="guide-section">
+          <h2 class="guide-title">사용법</h2>
+
+          <ul class="shortcut-list">
+            <li>
+              <span>5초 단위 이동</span>
+              <strong>← / →</strong>
+            </li>
+
+            <li>
+              <span>1초 단위 이동</span>
+              <strong>Ctrl + ← / →</strong>
+            </li>
+
+            <li>
+              <span>0.1초 단위 이동</span>
+              <strong>Shift + ← / →</strong>
+            </li>
+
+            <li>
+              <span>최신 지점으로 이동</span>
+              <strong>빨리감기 버튼 / 지연시간 초기화 버튼</strong>
+            </li>
+          </ul>
+        </div>
+
+        <div class="guide-section">
+          <h2 class="guide-title">두 방송의 싱크 맞추는 법</h2>
+
+          <ol class="guide-list">
+            <li>
+              빨리감기 버튼이나 지연 시간 초기화 버튼을 누른 뒤, 어느 쪽 방송이 더 빠른지 확인해주세요.
+            </li>
+
+            <li>
+              두 방송 중 더 빠른 쪽의 영상 화면을 선택해주세요.
+            </li>
+
+            <li>
+              방향키나 팝업의 이동 버튼을 사용해 두 방송의 싱크를
+              맞춰주세요.
+            </li>
+          </ol>
+        </div>
+
+        <div class="guide-section">
+          <h2 class="guide-title">
+            싱크를 맞췄는데 다시 어긋나는 경우
+          </h2>
+
+          <p class="guide-text">
+            <strong class="guide-subtitle">
+              1. 버퍼링 없이 점점 싱크가 계속 어긋나는 경우
+            </strong>
+            - 현재 지연 시간 뒤에 * 표시가 붙어 있다면 재생속도 보정이 이루어지고 있다는 뜻입니다.
+            빨리감기 혹은 지연 시간 초기화 버튼을 누른 후 다시 싱크를 맞춰주세요.<br>
+            - 같은 현상이 반복된다면 기능 탭의 지연 시간 보정 방지를 켜주세요.
+            <strong class="guide-subtitle">
+              2. 화면에 치지직 로고가 나타나며 영상이 버벅거리는 경우
+            </strong>
+            - 단순 인터넷 상태 문제로 인해 버퍼링이 발생한 것이므로 버퍼링이 끝난 뒤 다시 싱크를 맞춰주세요.
+          </p>
+        </div>
+
+        <div class="guide-section">
+          <h2 class="guide-title">
+            기타
+          </h2>
+          <p class="guide-text">
+            <strong class="guide-subtitle">
+            - 지연 시간은 브라우저가 받은 가장 최신 데이터와의 기준입니다. 실시간으로 데이터를 받기 때문에 표기가 1초 정도 왔다갔다 할 수 있습니다.<br>
+            - 지연 시간이 일정 이상 커지면 브라우저가 재생속도를 1.03배로 보정하여 지연 시간을 자동으로 자연스럽게 줄입니다.<br>
+            - 만약 지연 시간이 너무 커지면 브라우저에서 강제로 빨리감기를 실행합니다.<br>
+          </p>
+        </div>
+      </section>
+    </main>    
 
     <script src="popup.js"></script>
   </body>
