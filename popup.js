@@ -1,41 +1,72 @@
-const delayInput = document.getElementById("delaySeconds");
-const applyButton = document.getElementById("applyButton");
-const resetButton = document.getElementById("resetButton");
-const increaseButton = document.getElementById("increaseButton");
-const decreaseButton = document.getElementById("decreaseButton");
-const hideFastForwardButtonCheckbox = document.getElementById("hideFastForwardButton");
-const showVideoDelayInChatCheckbox = document.getElementById("showVideoDelayInChat");
-const preventDelayCorrectionCheckbox = document.getElementById("preventDelayCorrection");
-const videoDelayStatus = document.getElementById("videoDelayStatus");
+const resetButton =
+  document.getElementById("resetButton");
 
-const STEP = 0.1;
+const seekButtons = Array.from(
+  document.querySelectorAll(".seek-button")
+);
 
-const STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON = "hideFastForwardButton";
-const STORAGE_KEY_SHOW_VIDEO_DELAY_IN_CHAT = "showVideoDelayInChat";
-const STORAGE_KEY_PREVENT_DELAY_CORRECTION = "preventDelayCorrection";
+const showVideoDelayInChatCheckbox =
+  document.getElementById(
+    "showVideoDelayInChat"
+  );
 
-function roundToOneDecimal(value) {
-  return Math.round(value * 10) / 10;
-}
+const preventDelayCorrectionCheckbox =
+  document.getElementById(
+    "preventDelayCorrection"
+  );
 
-function getDelaySeconds() {
-  const value = Number(delayInput.value);
+const videoDelayValue =
+  document.getElementById(
+    "videoDelayValue"
+  );
 
-  if (Number.isNaN(value) || value < 0) {
-    return 0;
-  }
+const videoDelaySuffix =
+  document.getElementById(
+    "videoDelaySuffix"
+  );
 
-  return value;
-}
+const disableNormalArrowKeysCheckbox =
+  document.getElementById(
+    "disableNormalArrowKeys"
+  );
 
-function setDelaySeconds(value) {
-  const safeValue = Math.max(0, roundToOneDecimal(value));
-  delayInput.value = safeValue.toFixed(1);
-}
+const hideFastForwardButtonCheckbox =
+  document.getElementById(
+    "hideFastForwardButton"
+  );
 
-function setVideoDelayStatusText(text) {
-  videoDelayStatus.textContent = text;
-}
+const hideDelayBarCheckbox =
+  document.getElementById(
+    "hideDelayBar"
+  );
+
+const tabButtons = Array.from(
+  document.querySelectorAll(".tab-button")
+);
+
+const tabPanels = Array.from(
+  document.querySelectorAll(".tab-panel")
+);
+
+const tabContent =
+  document.querySelector(".tab-content");
+
+const STORAGE_KEY_SHOW_VIDEO_DELAY_IN_CHAT =
+  "showVideoDelayInChat";
+
+const STORAGE_KEY_PREVENT_DELAY_CORRECTION =
+  "preventDelayCorrection";
+
+const STORAGE_KEY_DISABLE_NORMAL_ARROW_KEYS =
+  "disableNormalArrowKeys";
+
+const STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON =
+  "hideFastForwardButton";
+
+const STORAGE_KEY_HIDE_DELAY_BAR =
+  "hideDelayBar";
+
+let delayStatusRequestRunning = false;
 
 async function sendToCurrentTab(message) {
   const [tab] = await chrome.tabs.query({
@@ -43,31 +74,75 @@ async function sendToCurrentTab(message) {
     currentWindow: true
   });
 
-  if (!tab || !tab.id) {
+  if (!tab?.id) {
     return {
       ok: false,
-      error: "현재 탭을 찾지 못했어요."
+      error: "current_tab_not_found"
     };
   }
 
-  return await chrome.tabs.sendMessage(tab.id, {
+  return chrome.tabs.sendMessage(tab.id, {
     source: "CHZZK_SYNCER",
     ...message
   });
 }
 
-async function applyDelay() {
-  const seconds = getDelaySeconds();
-  setDelaySeconds(seconds);
+function setUnavailableDelayStatus() {
+  videoDelayValue.textContent = "-";
+  videoDelaySuffix.textContent = "초";
+}
+
+async function updateVideoDelayStatus() {
+  if (delayStatusRequestRunning) {
+    return;
+  }
+
+  delayStatusRequestRunning = true;
+
+  try {
+    const result = await sendToCurrentTab({
+      action: "GET_VIDEO_DELAY"
+    });
+
+    if (
+      !result?.ok ||
+      !Number.isFinite(result.delay)
+    ) {
+      setUnavailableDelayStatus();
+      return;
+    }
+
+    const playbackRateMark =
+      result.isPlaybackRateAdjusted
+        ? "*"
+        : "";
+
+    videoDelayValue.textContent =
+      result.delay.toFixed(3);
+
+    videoDelaySuffix.textContent =
+      `초${playbackRateMark}`;
+  } catch (error) {
+    setUnavailableDelayStatus();
+  } finally {
+    delayStatusRequestRunning = false;
+  }
+}
+
+async function seekBy(seconds) {
+  if (!Number.isFinite(seconds)) {
+    return;
+  }
 
   try {
     await sendToCurrentTab({
-      action: "SET_DELAY",
+      action: "SEEK_BY",
       seconds
     });
 
-    updateVideoDelayStatus();
+    await updateVideoDelayStatus();
   } catch (error) {
+    setUnavailableDelayStatus();
   }
 }
 
@@ -77,134 +152,312 @@ async function resetToLive() {
       action: "GO_LIVE"
     });
 
-    updateVideoDelayStatus();
+    await updateVideoDelayStatus();
   } catch (error) {
+    setUnavailableDelayStatus();
   }
 }
 
-async function updateVideoDelayStatus() {
-  try {
-    const result = await sendToCurrentTab({
-      action: "GET_VIDEO_DELAY"
-    });
+function activateTab(tabName) {
+  tabButtons.forEach((button) => {
+    const isActive =
+      button.dataset.tab === tabName;
 
-    if (result?.ok) {
-      const playbackRateMark = result.isPlaybackRateAdjusted ? "*" : "";
-      setVideoDelayStatusText(`현재 지연시간: ${result.delay.toFixed(1)}초${playbackRateMark}`);
-      return;
-    }
+    button.classList.toggle(
+      "is-active",
+      isActive
+    );
 
-    setVideoDelayStatusText("현재 지연시간: -");
-  } catch (error) {
-    setVideoDelayStatusText("현재 지연시간: -");
+    button.setAttribute(
+      "aria-selected",
+      String(isActive)
+    );
+
+    button.tabIndex = isActive ? 0 : -1;
+  });
+
+  tabPanels.forEach((panel) => {
+    panel.hidden =
+      panel.dataset.panel !== tabName;
+  });
+
+  /*
+   * 다른 탭으로 이동할 때
+   * 스크롤을 맨 위로 되돌린다.
+   */
+  if (tabContent) {
+    tabContent.scrollTop = 0;
   }
 }
 
 function loadPopupSettings() {
   chrome.storage.sync.get(
     {
-      [STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON]: false,
-      [STORAGE_KEY_SHOW_VIDEO_DELAY_IN_CHAT]: false,
-      [STORAGE_KEY_PREVENT_DELAY_CORRECTION]: false
+      [STORAGE_KEY_SHOW_VIDEO_DELAY_IN_CHAT]:
+        false,
+
+      [STORAGE_KEY_PREVENT_DELAY_CORRECTION]:
+        false,
+
+      [STORAGE_KEY_DISABLE_NORMAL_ARROW_KEYS]:
+        false,
+
+      [STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON]:
+        false,
+
+      [STORAGE_KEY_HIDE_DELAY_BAR]:
+        false
     },
     (result) => {
-      hideFastForwardButtonCheckbox.checked =
-        Boolean(result[STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON]);
-
       showVideoDelayInChatCheckbox.checked =
-        Boolean(result[STORAGE_KEY_SHOW_VIDEO_DELAY_IN_CHAT]);
+        Boolean(
+          result[
+            STORAGE_KEY_SHOW_VIDEO_DELAY_IN_CHAT
+          ]
+        );
 
       preventDelayCorrectionCheckbox.checked =
-        Boolean(result[STORAGE_KEY_PREVENT_DELAY_CORRECTION]);
+        Boolean(
+          result[
+            STORAGE_KEY_PREVENT_DELAY_CORRECTION
+          ]
+        );
+
+      disableNormalArrowKeysCheckbox.checked =
+        Boolean(
+          result[
+            STORAGE_KEY_DISABLE_NORMAL_ARROW_KEYS
+          ]
+        );
+
+      hideFastForwardButtonCheckbox.checked =
+        Boolean(
+          result[
+            STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON
+          ]
+        );
+
+      hideDelayBarCheckbox.checked =
+        Boolean(
+          result[
+            STORAGE_KEY_HIDE_DELAY_BAR
+          ]
+        );
     }
   );
 }
 
-async function setHideFastForwardButton(hidden) {
+async function setShowVideoDelayInChat(
+  show
+) {
   chrome.storage.sync.set({
-    [STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON]: hidden
+    [STORAGE_KEY_SHOW_VIDEO_DELAY_IN_CHAT]:
+      show
   });
 
   try {
     await sendToCurrentTab({
-      action: "SET_HIDE_FAST_FORWARD_BUTTON",
-      hidden
-    });
-  } catch (error) {
-  }
-}
-
-async function setShowVideoDelayInChat(show) {
-  chrome.storage.sync.set({
-    [STORAGE_KEY_SHOW_VIDEO_DELAY_IN_CHAT]: show
-  });
-
-  try {
-    await sendToCurrentTab({
-      action: "SET_SHOW_VIDEO_DELAY_IN_CHAT",
+      action:
+        "SET_SHOW_VIDEO_DELAY_IN_CHAT",
       show
     });
   } catch (error) {
+    /*
+     * 현재 치지직 페이지가 아니더라도
+     * 설정은 storage에 저장된다.
+     */
   }
 }
 
-async function setPreventDelayCorrection(prevent) {
+async function setPreventDelayCorrection(
+  prevent
+) {
   chrome.storage.sync.set({
-    [STORAGE_KEY_PREVENT_DELAY_CORRECTION]: prevent
+    [STORAGE_KEY_PREVENT_DELAY_CORRECTION]:
+      prevent
   });
 
   try {
     await sendToCurrentTab({
-      action: "SET_PREVENT_DELAY_CORRECTION",
+      action:
+        "SET_PREVENT_DELAY_CORRECTION",
       prevent
     });
   } catch (error) {
+    /*
+     * 현재 치지직 페이지가 아니더라도
+     * 설정은 storage에 저장된다.
+     */
   }
 }
 
-increaseButton.addEventListener("click", () => {
-  setDelaySeconds(getDelaySeconds() + STEP);
-});
+async function setDisableNormalArrowKeys(
+  disabled
+) {
+  chrome.storage.sync.set({
+    [STORAGE_KEY_DISABLE_NORMAL_ARROW_KEYS]:
+      disabled
+  });
 
-decreaseButton.addEventListener("click", () => {
-  setDelaySeconds(getDelaySeconds() - STEP);
-});
+  try {
+    await sendToCurrentTab({
+      action:
+        "SET_DISABLE_NORMAL_ARROW_KEYS",
+      disabled
+    });
+  } catch (error) {
+    /*
+     * 현재 탭이 치지직 라이브 페이지가 아니어도
+     * 설정 자체는 저장된다.
+     */
+  }
+}
 
-applyButton.addEventListener("click", () => {
-  applyDelay();
-});
+async function setHideFastForwardButton(
+  hidden
+) {
+  chrome.storage.sync.set({
+    [STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON]:
+      hidden
+  });
 
-resetButton.addEventListener("click", () => {
-  resetToLive();
-});
+  try {
+    await sendToCurrentTab({
+      action:
+        "SET_HIDE_FAST_FORWARD_BUTTON",
+      hidden
+    });
+  } catch (error) {
+    /*
+     * 현재 치지직 페이지가 아니더라도
+     * 설정은 storage에 저장된다.
+     */
+  }
+}
 
-hideFastForwardButtonCheckbox.addEventListener("change", () => {
-  setHideFastForwardButton(hideFastForwardButtonCheckbox.checked);
-});
+async function setHideDelayBar(hidden) {
+  chrome.storage.sync.set({
+    [STORAGE_KEY_HIDE_DELAY_BAR]:
+      hidden
+  });
 
-showVideoDelayInChatCheckbox.addEventListener("change", () => {
-  setShowVideoDelayInChat(showVideoDelayInChatCheckbox.checked);
-});
+  try {
+    await sendToCurrentTab({
+      action: "SET_HIDE_DELAY_BAR",
+      hidden
+    });
+  } catch (error) {
+    /*
+     * 현재 탭이 치지직 방송 페이지가 아니어도
+     * 설정값 자체는 storage에 저장된다.
+     */
+  }
+}
 
-preventDelayCorrectionCheckbox.addEventListener("change", () => {
-  setPreventDelayCorrection(preventDelayCorrectionCheckbox.checked);
-});
-
-delayInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    applyDelay();
+function flashActionButton(button) {
+  if (!button) {
+    return;
   }
 
-  if (event.key === "ArrowUp") {
-    event.preventDefault();
-    setDelaySeconds(getDelaySeconds() + STEP);
-  }
+  /*
+   * 빠르게 연속 클릭해도
+   * 애니메이션을 처음부터 다시 실행한다.
+   */
+  button.classList.remove("is-flashing");
 
-  if (event.key === "ArrowDown") {
-    event.preventDefault();
-    setDelaySeconds(getDelaySeconds() - STEP);
-  }
+  void button.offsetWidth;
+
+  button.classList.add("is-flashing");
+
+  clearTimeout(button.flashTimer);
+
+  button.flashTimer = setTimeout(() => {
+    button.classList.remove("is-flashing");
+  }, 300);
+}
+
+/*
+ * 여섯 개 이동 버튼
+ *
+ * data-seconds 값:
+ * -5, -1, -0.1, 0.1, 1, 5
+ */
+seekButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const seconds =
+      Number(button.dataset.seconds);
+
+    flashActionButton(button);
+    seekBy(seconds);
+  });
 });
+
+resetButton.addEventListener(
+  "click",
+  () => {
+    flashActionButton(resetButton);
+    resetToLive();
+  }
+);
+
+tabButtons.forEach((button) => {
+  button.addEventListener(
+    "click",
+    () => {
+      activateTab(button.dataset.tab);
+    }
+  );
+});
+
+showVideoDelayInChatCheckbox.addEventListener(
+  "change",
+  () => {
+    setShowVideoDelayInChat(
+      showVideoDelayInChatCheckbox.checked
+    );
+  }
+);
+
+preventDelayCorrectionCheckbox.addEventListener(
+  "change",
+  () => {
+    setPreventDelayCorrection(
+      preventDelayCorrectionCheckbox.checked
+    );
+  }
+);
+
+disableNormalArrowKeysCheckbox.addEventListener(
+  "change",
+  () => {
+    setDisableNormalArrowKeys(
+      disableNormalArrowKeysCheckbox.checked
+    );
+  }
+);
+
+hideFastForwardButtonCheckbox.addEventListener(
+  "change",
+  () => {
+    setHideFastForwardButton(
+      hideFastForwardButtonCheckbox.checked
+    );
+  }
+);
+
+hideDelayBarCheckbox.addEventListener(
+  "change",
+  () => {
+    setHideDelayBar(
+      hideDelayBarCheckbox.checked
+    );
+  }
+);
+
+/*
+ * 팝업을 열면 기능 탭을 기본으로 표시한다.
+ */
+activateTab("features");
 
 loadPopupSettings();
 updateVideoDelayStatus();
