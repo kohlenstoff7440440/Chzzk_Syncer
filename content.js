@@ -2,14 +2,17 @@
   const SHIFT_STEP_SECONDS = 0.1;
   const CTRL_STEP_SECONDS = 1.0;
   const NORMAL_STEP_SECONDS = 5.0;
-  const LIVE_EDGE_MARGIN = 0.15;
+  const LIVE_EDGE_MARGIN = 1.1;
 
-  const STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON = "hideFastForwardButton";
   const STORAGE_KEY_SHOW_VIDEO_DELAY_IN_CHAT = "showVideoDelayInChat";
-  const STORAGE_KEY_PREVENT_DELAY_CORRECTION = "preventDelayCorrection"
+  const STORAGE_KEY_PREVENT_DELAY_CORRECTION = "preventDelayCorrection";
+  const STORAGE_KEY_DISABLE_NORMAL_ARROW_KEYS = "disableNormalArrowKeys";
+  const STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON = "hideFastForwardButton";
+  const STORAGE_KEY_HIDE_DELAY_BAR = "hideDelayBar";
 
-  const EVENT_FAST_FORWARD_VISIBILITY = "CHZZK_SYNCER_FAST_FORWARD_VISIBILITY";
   const EVENT_REQUEST_SETTINGS = "CHZZK_SYNCER_REQUEST_SETTINGS";
+  const EVENT_FAST_FORWARD_VISIBILITY = "CHZZK_SYNCER_FAST_FORWARD_VISIBILITY";
+  const EVENT_DELAY_BAR_VISIBILITY = "CHZZK_SYNCER_DELAY_BAR_VISIBILITY";
 
   const DEFAULT_CHAT_PLACEHOLDER = "채팅을 입력해주세요 (J)";
 
@@ -41,6 +44,7 @@
   let originalChatPlaceholder = null;
 
   let preventDelayCorrection = false;
+  let disableNormalArrowKeys = false;
   let playbackRateLockVideo = null;
 
   // 팝업창과 채팅창이 같이 사용할 "공통 표시용 지연시간"
@@ -126,6 +130,10 @@
   function setPreventDelayCorrection(prevent) {
     preventDelayCorrection = Boolean(prevent);
     updatePlaybackRateLock();
+  }
+
+  function setDisableNormalArrowKeys(disabled) {
+    disableNormalArrowKeys = Boolean(disabled);
   }
 
   function getBufferedInfo(video) {
@@ -451,7 +459,7 @@
     }
     
     const playbackRateMark = delayInfo.isPlaybackRateAdjusted ? "*" : "";
-    textarea.setAttribute("placeholder", `현재 지연: ${delayInfo.delay.toFixed(1)}초${playbackRateMark}`);
+    textarea.setAttribute("placeholder", `현재 지연: ${delayInfo.delay.toFixed(3)}초${playbackRateMark}`);
   }
 
   function setShowVideoDelayInChat(show) {
@@ -476,24 +484,49 @@
     );
   }
 
+  function sendDelayBarVisibility(hidden) {
+    window.dispatchEvent(
+      new CustomEvent(
+        EVENT_DELAY_BAR_VISIBILITY,
+        {
+          detail: {
+            hidden: Boolean(hidden)
+          }
+        }
+      )
+    );
+  }
+
   function loadSettings() {
     chrome.storage.sync.get(
       {
-        [STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON]: false,
         [STORAGE_KEY_SHOW_VIDEO_DELAY_IN_CHAT]: false,
-        [STORAGE_KEY_PREVENT_DELAY_CORRECTION]: false
+        [STORAGE_KEY_PREVENT_DELAY_CORRECTION]: false,
+        [STORAGE_KEY_DISABLE_NORMAL_ARROW_KEYS]: false,
+        [STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON]: false,
+        [STORAGE_KEY_HIDE_DELAY_BAR]: false
       },
       (result) => {
-        sendFastForwardButtonVisibility(
-          result[STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON]
-        );
-
         setShowVideoDelayInChat(
           result[STORAGE_KEY_SHOW_VIDEO_DELAY_IN_CHAT]
         );
 
         setPreventDelayCorrection(
           result[STORAGE_KEY_PREVENT_DELAY_CORRECTION]
+        );
+
+        setDisableNormalArrowKeys(
+          result[
+            STORAGE_KEY_DISABLE_NORMAL_ARROW_KEYS
+          ]
+        );
+
+        sendFastForwardButtonVisibility(
+          result[STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON]
+        );
+
+        sendDelayBarVisibility(
+          result[STORAGE_KEY_HIDE_DELAY_BAR]
         );
       }
     );
@@ -527,7 +560,10 @@ document.addEventListener(
       return;
     }
 
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+    if (
+      event.key !== "ArrowLeft" &&
+      event.key !== "ArrowRight"
+    ) {
       return;
     }
 
@@ -535,11 +571,14 @@ document.addEventListener(
       return;
     }
 
-    event.preventDefault();
-    event.stopPropagation();
-
-    // Shift + 방향키: 0.1초 단위
+    /*
+     * Shift 방향키는 설정과 관계없이
+     * 항상 0.1초 이동한다.
+     */
     if (event.shiftKey) {
+      event.preventDefault();
+      event.stopPropagation();
+
       if (event.key === "ArrowLeft") {
         seekBy(-SHIFT_STEP_SECONDS);
       }
@@ -551,8 +590,14 @@ document.addEventListener(
       return;
     }
 
-    // Ctrl + 방향키: 1초 단위
+    /*
+     * Ctrl 방향키도 설정과 관계없이
+     * 항상 1초 이동한다.
+     */
     if (event.ctrlKey) {
+      event.preventDefault();
+      event.stopPropagation();
+
       if (event.key === "ArrowLeft") {
         seekBy(-CTRL_STEP_SECONDS);
       }
@@ -564,7 +609,25 @@ document.addEventListener(
       return;
     }
 
-    // 그냥 방향키: 5초 단위
+    /*
+     * 수정 키가 없는 일반 좌우 방향키.
+     *
+     * 사용 안함 설정이 켜져 있으면
+     * 키 입력을 막고 아무 이동도 하지 않는다.
+     */
+    if (disableNormalArrowKeys) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    /*
+     * 설정이 꺼져 있으면 기존처럼
+     * 일반 방향키로 5초 이동한다.
+     */
+    event.preventDefault();
+    event.stopPropagation();
+
     if (event.key === "ArrowLeft") {
       seekBy(-NORMAL_STEP_SECONDS);
     }
@@ -593,35 +656,36 @@ document.addEventListener(
       return;
     }
 
-    if (message.action === "REWIND_STEP") {
-      const result = seekBy(-SHIFT_STEP_SECONDS);
-      sendResponse(result);
+  if (message.action === "SEEK_BY") {
+    const seconds = Number(message.seconds);
+
+    if (!Number.isFinite(seconds)) {
+      sendResponse({
+        ok: false,
+        error: "invalid_seconds"
+      });
+
       return;
     }
+
+    const result = seekBy(seconds);
+    sendResponse(result);
+    return;
+  }
+
+  if (message.action === "REWIND_STEP") {
+    const result = seekBy(
+      -SHIFT_STEP_SECONDS
+    );
+
+    sendResponse(result);
+    return;
+  }
 
     if (message.action === "GET_VIDEO_DELAY") {
-      const result = getDisplayedDelayInfo();
+      const result = updateDisplayedDelayInfo();
       sendResponse(result);
       return;
-    }
-
-    if (message.action === "SET_HIDE_FAST_FORWARD_BUTTON") {
-      const hidden = Boolean(message.hidden);
-
-      chrome.storage.sync.set(
-        {
-          [STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON]: hidden
-        },
-        () => {
-          sendFastForwardButtonVisibility(hidden);
-          sendResponse({
-            ok: true,
-            hidden
-          });
-        }
-      );
-
-      return true;
     }
 
     if (message.action === "SET_PREVENT_DELAY_CORRECTION") {
@@ -661,6 +725,66 @@ document.addEventListener(
 
       return true;
     }
+
+    if (
+      message.action === "SET_DISABLE_NORMAL_ARROW_KEYS") {
+      const disabled = Boolean(message.disabled);
+
+      chrome.storage.sync.set(
+        {
+          [STORAGE_KEY_DISABLE_NORMAL_ARROW_KEYS]:
+            disabled
+        },
+        () => {
+          setDisableNormalArrowKeys(disabled);
+
+          sendResponse({
+            ok: true,
+            disabled
+          });
+        }
+      );
+
+      return true;
+    }
+
+    if (message.action === "SET_HIDE_FAST_FORWARD_BUTTON") {
+      const hidden = Boolean(message.hidden);
+
+      chrome.storage.sync.set(
+        {
+          [STORAGE_KEY_HIDE_FAST_FORWARD_BUTTON]: hidden
+        },
+        () => {
+          sendFastForwardButtonVisibility(hidden);
+          sendResponse({
+            ok: true,
+            hidden
+          });
+        }
+      );
+
+      return true;
+    }
+
+    if (message.action === "SET_HIDE_DELAY_BAR") {
+     const hidden = Boolean(message.hidden);
+
+     chrome.storage.sync.set(
+       {
+         [STORAGE_KEY_HIDE_DELAY_BAR]: hidden
+       },
+       () => {
+         sendDelayBarVisibility(hidden);
+         sendResponse({
+           ok: true,
+           hidden
+         });
+       }
+     );
+
+     return true;
+   }
   });
 
   console.log("[Chzzk Syncer] content.js loaded");
